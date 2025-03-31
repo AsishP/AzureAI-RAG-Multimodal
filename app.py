@@ -24,8 +24,7 @@ search_api_key = os.environ.get("AZURE_SEARCHKEY_2")
 search_semantic_config = os.environ.get("SEARCH_SEMANTIC_CONFIGURATION")
 search_query_type = "vector" if os.environ.get("SEARCH_QUERY_TYPE") == "vector" else "simple"
 
-blobl_sas_token = os.environ.get("BLOB_SAS_URI")
-
+blobl_sas_token = os.environ.get("BLOB_SAS_TOKEN")
 
 def open_avatare_image(file_path):
     data = None
@@ -105,6 +104,7 @@ def get_client(account_url):
 
 
 def generate_sas_token(file_name):
+    #return f"{file_name}"
     return f"{file_name}?{blobl_sas_token}"
 
 
