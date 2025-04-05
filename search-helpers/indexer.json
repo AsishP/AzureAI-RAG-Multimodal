@@ -10,7 +10,6 @@
     "batchSize": null,
     "maxFailedItems": null,
     "maxFailedItemsPerBatch": null,
-    "base64EncodeKeys": null,
     "configuration": {
       "dataToExtract": "contentAndMetadata",
       "parsingMode": "jsonArray"
