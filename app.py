@@ -55,7 +55,7 @@ if "search_config_params" not in st.session_state:
     st.session_state["search_config_params"] = {
         'filter': None,
         'strictness': 1,
-        'top_n_documents': 20
+        'top_n_documents': 50
     }        
 if "cost" not in st.session_state:
     st.session_state["cost"] = []
@@ -338,8 +338,8 @@ def get_llm_completion(prompt):
 
     except Exception as e:
         st.write(e)
-        response = f"The API could not handle this content: {str(e)}"
-        print('>>> here???')
+        response = f"The API could not handle this content: {json.dumps(e, default=str)}"
+        print('>>> error???')
     st.session_state["messages"].append({"role": "assistant", "content": response})
 
     return json.loads(completion.to_json())
