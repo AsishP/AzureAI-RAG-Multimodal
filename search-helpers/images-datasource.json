@@ -1,0 +1,17 @@
+{
+    "name": "INDEX_NAME_HERE-datasource",
+    "description": null,
+    "type": "azureblob",
+    "subtype": null,
+    "credentials": {
+      "connectionString": "ResourceId=/subscriptions/SUBSCRIPTION_ID_HERE/resourceGroups/RESOURCE_GROUP_NAME_HERE/providers/Microsoft.Storage/storageAccounts/STORAGE_ACCOUNT_NAME_HERE;"
+    },
+    "container": {
+      "name": "CONTAINER_NAME_HERE",
+      "query": "IMAGES_FOLDER_HERE"
+    },
+    "dataChangeDetectionPolicy": null,
+    "dataDeletionDetectionPolicy": null,
+    "encryptionKey": null,
+    "identity": null
+  }

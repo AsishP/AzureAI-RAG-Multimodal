@@ -10,17 +10,21 @@ RESOURCE_GROUP_NAME_HERE = os.getenv('RESOURCE_GROUP_NAME_HERE')
 STORAGE_ACCOUNT_NAME_HERE = os.getenv('STORAGE_ACCOUNT_NAME_HERE')
 CONTAINER_NAME_HERE = os.getenv('CONTAINER_NAME_HERE')
 TEXTDATA_QUERY_HERE = os.getenv('TEXTDATA_QUERY_HERE')
+IMAGES_FOLDER_HERE = os.getenv('IMAGES_FOLDER_HERE')
 
 AOAI_URI_HERE = os.getenv('OPENAI_EMBEDDINGBASE_URL')
 AOAI_API_KEY_HERE = os.getenv('OPENAI_EMBEDDINGAPI_KEY')
 AOAI_DEPLOYMENT_ID_HERE = os.getenv('OPENAI_EMBEDDINGDEPLOYMENT')
 AOAI_MODEL_NAME_HERE = os.getenv('OPENAI_EMBEDDINGMODEL')
+AI_VISION_URI_HERE = os.getenv('AI_VISION_ENDPOINT')
+AI_VISION_KEY_HERE = os.getenv('AI_VISION_API_KEY')
+AI_MODEL_VERSION_HERE = os.getenv('AI_VISION_API_VERSION')
 
 VECTOR_INDEX_NAME_HERE = os.getenv('VECTOR_INDEX_NAME_HERE')
-AZURE_SEARCH_ENDPOINT = os.getenv('AZURE_SEARCH_ENDPOINT_2')
-AZURE_SEARCHKEY = os.getenv('AZURE_SEARCHKEY_2')
+VECTOR_IMAGES_INDEX_NAME_HERE = os.getenv('VECTOR_IMAGES_INDEX_NAME_HERE')
+AZURE_SEARCH_ENDPOINT = os.getenv('AZURE_SEARCH_ENDPOINT')
+AZURE_SEARCHKEY = os.getenv('AZURE_SEARCHKEY')
 AZURE_SEARCH_API_VERSION = os.getenv('AZURE_SEARCH_API_VERSION')
-
 
 required_vars = {
     'SUBSCRIPTION_ID_HERE': SUBSCRIPTION_ID_HERE,
@@ -35,7 +39,11 @@ required_vars = {
     'AOAI_DEPLOYMENT_ID_HERE': AOAI_DEPLOYMENT_ID_HERE,
     'AOAI_MODEL_NAME_HERE': AOAI_MODEL_NAME_HERE,
     'AZURE_SEARCH_API_VERSION': AZURE_SEARCH_API_VERSION,
-    'TEXTDATA_QUERY_HERE': TEXTDATA_QUERY_HERE
+    'TEXTDATA_QUERY_HERE': TEXTDATA_QUERY_HERE,
+    'AI_VISION_URI_HERE': AI_VISION_URI_HERE,
+    'AI_VISION_KEY_HERE': AI_VISION_KEY_HERE,
+    'AI_MODEL_VERSION_HERE': AI_MODEL_VERSION_HERE,
+    'IMAGES_FOLDER_HERE': IMAGES_FOLDER_HERE
 }
 
 for var_name, var_value in required_vars.items():
@@ -67,15 +75,22 @@ def update_search_from_json(search_control_plane,json_file_path):
         with open(json_file_path, 'r', encoding='utf-8') as file:
             payload = json.load(file)
 
-            if search_control_plane == "datasource":
+            # Replace placeholders in the JSON payload
+            if "images" in search_control_plane:
+                name = VECTOR_IMAGES_INDEX_NAME_HERE  # Replace with your images vector index name
+            else:
+                name = VECTOR_INDEX_NAME_HERE  # Replace with your index name
+
+            if search_control_plane == "datasource" and search_control_plane == "images-datasource":
                 payload = replace_placeholder_in_json(payload, "SUBSCRIPTION_ID_HERE", SUBSCRIPTION_ID_HERE)  # Replace with your subscription ID
                 payload = replace_placeholder_in_json(payload, "RESOURCE_GROUP_NAME_HERE", RESOURCE_GROUP_NAME_HERE)  # Replace with your resource group name
                 payload = replace_placeholder_in_json(payload, "STORAGE_ACCOUNT_NAME_HERE", STORAGE_ACCOUNT_NAME_HERE)  # Replace with your storage account name
                 payload = replace_placeholder_in_json(payload, "CONTAINER_NAME_HERE", CONTAINER_NAME_HERE)  # Replace with your container name
                 payload = replace_placeholder_in_json(payload, "TEXTDATA_QUERY_HERE", TEXTDATA_QUERY_HERE)  # Replace with your text data query
-                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", VECTOR_INDEX_NAME_HERE)  # Replace with your index name
+                payload = replace_placeholder_in_json(payload, "IMAGES_FOLDER_HERE", IMAGES_FOLDER_HERE)  # Replace with your images folder name
+                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", name)  # Replace with your images vector index name
 
-                data_source_name = f"{VECTOR_INDEX_NAME_HERE}-datasource"
+                data_source_name = f"{name}-datasource"
 
                 response = requests.put(
                     url=f"{AZURE_SEARCH_ENDPOINT}/datasources/{data_source_name}?api-version={AZURE_SEARCH_API_VERSION}",
@@ -90,14 +105,15 @@ def update_search_from_json(search_control_plane,json_file_path):
                     print(f"Failed to create data source '{data_source_name}'. Status code: {response.status_code}, Response: {response.text}")
                 return False
 
-            elif search_control_plane == "skillset":
+            elif search_control_plane == "skillset" and search_control_plane == "images-skillset":
                 payload = replace_placeholder_in_json(payload, "AOAI_URI_HERE", AOAI_URI_HERE)  # Replace with your AOAI URI
                 payload = replace_placeholder_in_json(payload, "AOAI_API_KEY_HERE", AOAI_API_KEY_HERE)  # Replace with your AOAI API key
                 payload = replace_placeholder_in_json(payload, "AOAI_DEPLOYMENT_ID_HERE", AOAI_DEPLOYMENT_ID_HERE)  # Replace with your AOAI deployment ID
                 payload = replace_placeholder_in_json(payload, "AOAI_MODEL_NAME_HERE", AOAI_MODEL_NAME_HERE)  # Replace with your AOAI model name
-                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", VECTOR_INDEX_NAME_HERE)  # Replace with your index name
+                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", name)  # Replace with your index name
+                payload = replace_placeholder_in_json(payload, "AI_VISION_URI_HERE", AI_VISION_URI_HERE)  # Replace with your AI Vision URI
 
-                skillset_name = f"{VECTOR_INDEX_NAME_HERE}-skillset"
+                skillset_name = f"{name}-skillset"
 
                 response = requests.put(
                     url=f"{AZURE_SEARCH_ENDPOINT}/skillsets/{skillset_name}?api-version={AZURE_SEARCH_API_VERSION}",
@@ -112,14 +128,17 @@ def update_search_from_json(search_control_plane,json_file_path):
                     print(f"Failed to create skillset '{skillset_name}'. Status code: {response.status_code}, Response: {response.text}")
                 return False
 
-            elif search_control_plane == "index":
+            elif search_control_plane == "index" and search_control_plane == "images-index":
                 payload = replace_placeholder_in_json(payload, "AOAI_URI_HERE", AOAI_URI_HERE)  # Replace with your AOAI URI
                 payload = replace_placeholder_in_json(payload, "AOAI_API_KEY_HERE", AOAI_API_KEY_HERE)  # Replace with your AOAI API key
                 payload = replace_placeholder_in_json(payload, "AOAI_DEPLOYMENT_ID_HERE", AOAI_DEPLOYMENT_ID_HERE)  # Replace with your AOAI deployment ID
                 payload = replace_placeholder_in_json(payload, "AOAI_MODEL_NAME_HERE", AOAI_MODEL_NAME_HERE)  # Replace with your AOAI model name
-                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", VECTOR_INDEX_NAME_HERE)  # Replace with your index name 
+                payload = replace_placeholder_in_json(payload, "AI_VISION_URI_HERE", AI_VISION_URI_HERE)  # Replace with your AI Vision URI
+                payload = replace_placeholder_in_json(payload, "AI_VISION_KEY_HERE", AI_VISION_KEY_HERE)  # Replace with your AI Vision key
+                payload = replace_placeholder_in_json(payload, "AI_MODEL_VERSION_HERE", AI_MODEL_VERSION_HERE)  # Replace with your AI model version
+                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", name)  # Replace with your index name 
 
-                index_name = VECTOR_INDEX_NAME_HERE
+                index_name = name
 
                 response = requests.put(
                     url=f"{AZURE_SEARCH_ENDPOINT}/indexes/{index_name}?api-version={AZURE_SEARCH_API_VERSION}",
@@ -133,9 +152,9 @@ def update_search_from_json(search_control_plane,json_file_path):
                 else:
                     print(f"Failed to create index '{index_name}'. Status code: {response.status_code}, Response: {response.text}")
                 return False
-            elif search_control_plane == "indexer":
-                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", VECTOR_INDEX_NAME_HERE)  # Replace with your index name 
-                indexer_name = f"{VECTOR_INDEX_NAME_HERE}-indexer"
+            elif search_control_plane == "indexer" and search_control_plane == "images-indexer":
+                payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", name)  # Replace with your index name 
+                indexer_name = f"{name}-indexer"
 
                 response = requests.put(
                     url=f"{AZURE_SEARCH_ENDPOINT}/indexers/{indexer_name}?api-version={AZURE_SEARCH_API_VERSION}",
@@ -188,6 +207,11 @@ for filename in os.listdir(directory):
         json_files[file_name_without_extension] = file_path
 
 for control_plane in ["datasource", "index", "skillset", "indexer"]:
+    if control_plane in json_files and search_creation_success:
+        print(f"Processing {control_plane} JSON file: {json_files[control_plane]}")
+        search_creation_success = update_search_from_json(control_plane, json_files[control_plane])
+
+for control_plane in ["images-datasource", "images-index", "images-skillset", "images-indexer"]:
     if control_plane in json_files and search_creation_success:
         print(f"Processing {control_plane} JSON file: {json_files[control_plane]}")
         search_creation_success = update_search_from_json(control_plane, json_files[control_plane])

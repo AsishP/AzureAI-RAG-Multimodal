@@ -1,0 +1,185 @@
+{
+    "@odata.etag": "\"0x8DD7748DE9D6377\"",
+    "name": "INDEX_NAME_HERE",
+    "fields": [
+      {
+        "name": "chunk_id",
+        "type": "Edm.String",
+        "searchable": true,
+        "filterable": false,
+        "retrievable": true,
+        "stored": true,
+        "sortable": true,
+        "facetable": false,
+        "key": true,
+        "analyzer": "keyword",
+        "synonymMaps": []
+      },
+      {
+        "name": "text_parent_id",
+        "type": "Edm.String",
+        "searchable": false,
+        "filterable": true,
+        "retrievable": true,
+        "stored": true,
+        "sortable": false,
+        "facetable": false,
+        "key": false,
+        "synonymMaps": []
+      },
+      {
+        "name": "chunk",
+        "type": "Edm.String",
+        "searchable": true,
+        "filterable": false,
+        "retrievable": true,
+        "stored": true,
+        "sortable": false,
+        "facetable": false,
+        "key": false,
+        "synonymMaps": []
+      },
+      {
+        "name": "title",
+        "type": "Edm.String",
+        "searchable": true,
+        "filterable": false,
+        "retrievable": true,
+        "stored": true,
+        "sortable": false,
+        "facetable": false,
+        "key": false,
+        "synonymMaps": []
+      },
+      {
+        "name": "image_parent_id",
+        "type": "Edm.String",
+        "searchable": false,
+        "filterable": true,
+        "retrievable": true,
+        "stored": true,
+        "sortable": false,
+        "facetable": false,
+        "key": false,
+        "synonymMaps": []
+      },
+      {
+        "name": "text_vector",
+        "type": "Collection(Edm.Single)",
+        "searchable": true,
+        "filterable": false,
+        "retrievable": true,
+        "stored": true,
+        "sortable": false,
+        "facetable": false,
+        "key": false,
+        "dimensions": 1536,
+        "vectorSearchProfile": "INDEX_NAME_HERE-azureOpenAi-text-profile",
+        "synonymMaps": []
+      },
+      {
+        "name": "image_vector",
+        "type": "Collection(Edm.Single)",
+        "searchable": true,
+        "filterable": false,
+        "retrievable": true,
+        "stored": true,
+        "sortable": false,
+        "facetable": false,
+        "key": false,
+        "dimensions": 1024,
+        "vectorSearchProfile": "INDEX_NAME_HERE-aiServicesVision-image-profile",
+        "synonymMaps": []
+      },
+      {
+        "name": "imageUrl",
+        "type": "Edm.String",
+        "searchable": true,
+        "filterable": false,
+        "retrievable": true,
+        "stored": true,
+        "sortable": false,
+        "facetable": false,
+        "key": false,
+        "synonymMaps": []
+      }
+    ],
+    "scoringProfiles": [],
+    "suggesters": [],
+    "analyzers": [],
+    "normalizers": [],
+    "tokenizers": [],
+    "tokenFilters": [],
+    "charFilters": [],
+    "similarity": {
+      "@odata.type": "#Microsoft.Azure.Search.BM25Similarity"
+    },
+    "semantic": {
+      "defaultConfiguration": "INDEX_NAME_HERE-semantic-configuration",
+      "configurations": [
+        {
+          "name": "INDEX_NAME_HERE-semantic-configuration",
+          "flightingOptIn": false,
+          "prioritizedFields": {
+            "titleField": {
+              "fieldName": "title"
+            },
+            "prioritizedContentFields": [
+              {
+                "fieldName": "chunk"
+              }
+            ],
+            "prioritizedKeywordsFields": []
+          }
+        }
+      ]
+    },
+    "vectorSearch": {
+      "algorithms": [
+        {
+          "name": "INDEX_NAME_HERE-algorithm",
+          "kind": "hnsw",
+          "hnswParameters": {
+            "metric": "cosine",
+            "m": 4,
+            "efConstruction": 400,
+            "efSearch": 500
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "name": "INDEX_NAME_HERE-azureOpenAi-text-profile",
+          "algorithm": "INDEX_NAME_HERE-algorithm",
+          "vectorizer": "INDEX_NAME_HERE-azureOpenAi-text-vectorizer"
+        },
+        {
+          "name": "INDEX_NAME_HERE-aiServicesVision-image-profile",
+          "algorithm": "INDEX_NAME_HERE-algorithm",
+          "vectorizer": "INDEX_NAME_HERE-aiServicesVision-image-vectorizer"
+        }
+      ],
+      "vectorizers": [
+        {
+          "name": "INDEX_NAME_HERE-azureOpenAi-text-vectorizer",
+          "kind": "azureOpenAI",
+          "azureOpenAIParameters": {
+            "resourceUri": "AOAI_URI_HERE",
+            "deploymentId": "AOAI_DEPLOYMENT_ID_HERE",
+            "apiKey": "AOAI_API_KEY_HERE",
+            "modelName": "AOAI_MODEL_NAME_HERE"
+          }
+        },
+        {
+          "name": "INDEX_NAME_HERE-aiServicesVision-image-vectorizer",
+          "kind": "aiServicesVision",
+          "aiServicesVisionParameters": {
+            "modelVersion": "AI_MODEL_VERSION_HERE",
+            "apiKey": "AI_VISION_KEY_HERE",
+            "resourceUri": "AI_VISION_URI_HERE"
+          }
+        }
+      ],
+      "compressions": []
+    }
+  }

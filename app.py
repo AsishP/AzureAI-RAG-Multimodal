@@ -3,10 +3,15 @@ import dotenv
 import os
 import json
 import random, string
+import time
+import requests
 
 from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
+from azure.search.documents.models import VectorizedQuery
+from azure.search.documents import SearchClient
+from azure.core.credentials import AzureKeyCredential
 
 
 st.set_page_config(layout="wide")
@@ -18,13 +23,19 @@ deployment = os.environ.get("OPENAI_DEPLOYMENT_NAME")
 api_version = os.environ.get("OPENAI_API_VERSION")
 deployment_embedding = os.environ.get("OPENAI_EMBEDDINGMODEL")
 
-search_endpoint = os.environ.get("AZURE_SEARCH_ENDPOINT_2")
-search_index = os.environ.get("AZURE_SEARCH_INDEX_2")
-search_api_key = os.environ.get("AZURE_SEARCHKEY_2")
+ai_vision_endpoint = os.environ.get("AI_VISION_ENDPOINT")
+ai_vision_apiversion = os.environ.get("AI_VISION_API_VERSION")
+ai_vision_api_key = os.environ.get("AI_VISION_API_KEY")
+
+search_endpoint = os.environ.get("AZURE_SEARCH_ENDPOINT")
+search_index = os.environ.get("AZURE_SEARCH_INDEX")
+search_index_image = os.environ.get("AZURE_SEARCH_INDEX_3")
+search_api_key = os.environ.get("AZURE_SEARCHKEY")
 search_semantic_config = os.environ.get("SEARCH_SEMANTIC_CONFIGURATION")
 search_query_type = "vector" if os.environ.get("SEARCH_QUERY_TYPE") == "vector" else "simple"
 
 blobl_sas_token = os.environ.get("BLOB_SAS_TOKEN")
+blob_folderPath = os.environ.get("BLOB_FOLDER_PATH")
 
 def open_avatare_image(file_path):
     data = None
@@ -363,15 +374,146 @@ def generate_response(prompt):
 
     return response, total_tokens, prompt_tokens, completion_tokens
 
+################ Image Search ################
 
+def generate_embeddings_text(text):
+
+    print(f"Generating embeddings...")
+    print(f"Input text: {text}")
+    print(f"Input AI_VISION_ENDPOINT: {ai_vision_endpoint}")
+
+    url = f"{ai_vision_endpoint}/computervision/retrieval:vectorizeText?api-version={ai_vision_apiversion}"
+
+    headers = {
+        "Content-Type": "application/json",
+        "Ocp-Apim-Subscription-Key": ai_vision_api_key,
+    }
+
+    data = {"text": text}
+
+    s = time.time()
+    response = requests.post(url, headers=headers, json=data)
+    print(f"Time taken florence text embedding: {time.time() - s}")
+
+    if response.status_code == 200:
+        # print(f"Embeddings: {response.json()}")
+        embeddings = response.json()["vector"]
+        return embeddings
+    else:
+        print(f"Error: {response.status_code} - {response.text}")
+        return None
+
+
+def ask_openai(query):
+    print(f"Asking OpenAI...")
+    print(f"Input query: {query}")
+
+    client = st.session_state['aoai_client']
+
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are helpful AI assistant."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    "Convert a user query into a textual representation capturing central "
+                    "semantic meanings which is most suitable for finding best results in a search. "
+                    "Output only a final query not more than 200 tokens size. Here is the original query: "
+                    f"{query}"
+                ),
+            },
+        ],
+        model=deployment,
+        max_tokens=200,
+    )
+
+    return chat_completion.choices[0].message.content
+
+def ImageSearch(query, max_images=5):
+    
+    try:
+        user_query = query
+
+        ##query = ask_openai(user_query)
+        print(f"Rephrased query: {query}")
+
+        # Generate embeddings for the query
+        vector_query = VectorizedQuery(
+            vector=generate_embeddings_text(query),
+            k_nearest_neighbors=max_images,
+            fields="image_vector",
+        )
+
+        ssrc = time.time()
+        # Perform vector search
+        print(f"Creating search client. AI_SEARCH_SERVICE_ENDPOINT: {search_endpoint}, AI_SEARCH_INDEX_NAME: {search_index_image}")
+        
+        search_client = SearchClient(
+            endpoint=search_endpoint,
+            index_name=search_index_image,
+            credential= AzureKeyCredential(search_api_key)
+        )
+
+        results = search_client.search(
+            search_text=query, vector_queries=[vector_query], select=["title", "chunk", "imageUrl"]
+        )
+
+        print(f"Time taken for florence search: {time.time() - ssrc}")
+        # Print the search results
+        output = []
+
+        for result in results:
+            
+            print(f"Result: {result}")
+
+            if "imageUrl" in result and result["imageUrl"]:
+                image_url = result["imageUrl"]
+            else:
+                image_url = blob_folderPath + result["title"]
+
+            sas_url = generate_sas_token(image_url)
+            # response = requests.get(sas_url, headers={"Authorization": auth_header})
+
+            # # Check if the request was successful
+            # if response.status_code == 200:
+            #     # Convert the image data to base64
+            #     base64_image = base64.b64encode(response.content).decode('utf-8')
+            #     print(f"Base64 Image: {base64_image}")
+            # else:
+            #     base64_image = f"Failed to download image. Status code: {response.status_code}, Reason: {response.reason}"
+
+            output.append(
+                {
+                    "Title": result["chunk"] if result["chunk"] else result["title"],
+                    "ImageURL": image_url,
+                    # "Image": base64_image,
+                    "Image": sas_url,
+                    "Score": result["@search.score"],
+                }
+            )
+    except Exception as e:
+            st.write(e)
+            response = f"The API could not handle this content: {json.dumps(e, default=str)}"
+            print('>>> error???')
+            return json.dumps([])
+    return json.dumps(output)
+
+
+#### Main app Rendering ####
 st.title("Azure Open AI RAG with Images")
 
-response_container = st.container()
 container = st.container()
-
 with container:
-    with st.form(key="form", clear_on_submit=True):
+    response_container = st.container()
+tabs = st.tabs(["Chat with Data", "Image Search"])
 
+with tabs[0]:
+    with st.form(key="form", clear_on_submit=True):
         user_input = st.text_area("Type a new question...", key="input", height=100)
         submit_button = st.form_submit_button(label="Send")
             
@@ -385,6 +527,22 @@ with container:
         sentiment_mapping = [":material/thumb_down:", ":material/thumb_up:"]
         st.session_state["model_name"].append(deployment)
 
+with tabs[1]:
+    st.write("### Image Search")
+    image_query = st.text_input("Search for images", key="image_search_input")
+    search_button = st.button("Search Images", key="image_search_button")
+    
+    if search_button and image_query:
+        # Placeholder for image search logic
+        st.write(f"Searching for images related to: {image_query}")
+        # Add logic to fetch and display images here
+        image_results = ImageSearch(image_query)
+        if image_results:
+            image_results = json.loads(image_results)
+            cols = st.columns(3)  # Adjust the number of columns as needed
+            for idx, result in enumerate(image_results):
+                with cols[idx % 3]:
+                    st.image(result["Image"], caption=result["Title"], use_column_width=True)
 
 if st.session_state["generated"]:
     with response_container:
@@ -409,3 +567,4 @@ with st.sidebar:
         on = st.toggle(f"{refs_count} References", help="Toggle on to see citations", value =True)
         if on:
             render_references(refs, 'tabs', 'selected')
+
