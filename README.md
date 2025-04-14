@@ -9,9 +9,14 @@ Create two folders in it as below:
 - raw_data
 - prepared_data
 
-Create a SAS URI to the blob container with the permissions shown below:
-![alt text](Images/blobsasaccess.png)
-> [Create SAS tokens for Azure Storage](https://learn.microsoft.com/en-us/azure/ai-services/translator/document-translation/how-to-guides/create-sas-tokens?tabs=Containers)
+- Generate a SAS URI for the blob container with the following permissions:
+    - Read
+    - Write
+    - List
+    - Delete
+- Refer to the image below for the required permissions:
+    ![alt text](Images/blobsasaccess.png)
+- Follow this guide to create SAS tokens for Azure Storage: [Create SAS tokens for Azure Storage](https://learn.microsoft.com/en-us/azure/ai-services/translator/document-translation/how-to-guides/create-sas-tokens?tabs=Containers)
 
 ## Step 2
 Create an Azure AI Search Service (if not done before, use the below reference quickstart)
@@ -24,21 +29,30 @@ Create an Azure Open AI resource (recommendeded:Use Azure AI Foundry Project) an
 2. gpt-4o-mini
 
 ## Step 4
-Copy the .env-sample file and paste it in the same folder. Then rename the copied file to .env file
-Fill the values in .env file with values from Azure Resources where not available.
+- Copy the `.env-sample` file and paste it in the same folder.
+- Rename the copied file to `.env`.
+- Fill the values in the `.env` file with values from Azure Resources where not available.
 
 ## Step 5
-Upload the PDF documents to raw_data folder.
-Run the split-pdf.py file to split the PDF into JSON file and Images
-Make sure the prepared_data folder has a Text folder with a JSON file and Images folder has images in it
+- Upload the PDF documents to the `raw_data` folder.
+- Run the `split-pdf.py` file to split the PDF into JSON files and images.
+- Ensure the `prepared_data` folder contains:
+    - A `Text` folder with JSON files.
+    - An `Images` folder with images.
 
-## Step 6
-Run the searchsetup.py to create the Data Sources, Skills, Indexer and Index in the Azure AI Search instance
-Check the Indexer run has finised successfully and there are documents crawled in the Index
+- Run the `searchsetup.py` script to:
+    - Create the Data Sources.
+    - Configure Skills.
+    - Set up the Indexer.
+    - Create the Index in the Azure AI Search instance.
+- Verify the Indexer run has completed successfully.
+- Ensure documents have been crawled and are present in the Index.
 
 ## Step 7
-Run the Streamlit debugger to run app.py which will open the web page with the Search box.
-In case of issue, please check the Terminal in VS code or your IDE for more details.
+- Run the Streamlit debugger to execute `app.py`.
+- Open the web page with the Search box.
+- If issues occur:
+    - Check the Terminal in VS Code or your IDE for more details.
 
 
 
