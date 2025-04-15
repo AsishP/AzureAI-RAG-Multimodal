@@ -13,7 +13,6 @@ from azure.search.documents.models import VectorizedQuery
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 
-
 st.set_page_config(layout="wide")
 dotenv.load_dotenv()
 
@@ -29,7 +28,7 @@ ai_vision_api_key = os.environ.get("AI_VISION_API_KEY")
 
 search_endpoint = os.environ.get("AZURE_SEARCH_ENDPOINT")
 search_index = os.environ.get("AZURE_SEARCH_INDEX")
-search_index_image = os.environ.get("AZURE_SEARCH_INDEX_3")
+search_index_image = os.environ.get("AZURE_SEARCH_INDEX_IMAGES")
 search_api_key = os.environ.get("AZURE_SEARCHKEY")
 search_semantic_config = os.environ.get("SEARCH_SEMANTIC_CONFIGURATION")
 search_query_type = "vector" if os.environ.get("SEARCH_QUERY_TYPE") == "vector" else "simple"
