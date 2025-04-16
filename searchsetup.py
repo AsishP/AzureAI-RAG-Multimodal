@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import sys
 load_dotenv()
 
+# Load environment variables from .env file
 SUBSCRIPTION_ID_HERE = os.getenv('SUBSCRIPTION_ID_HERE')
 RESOURCE_GROUP_NAME_HERE = os.getenv('RESOURCE_GROUP_NAME_HERE')
 STORAGE_ACCOUNT_NAME_HERE = os.getenv('STORAGE_ACCOUNT_NAME_HERE')
@@ -51,6 +52,7 @@ for var_name, var_value in required_vars.items():
         print(f"Error: Environment variable {var_name} is not set.")
         sys.exit(1)
 
+# Replace the placeholders in the JSON payload with actual values
 def replace_placeholder_in_json(data, placeholder_name, placeholder_value):
     # Replace the placeholder
     for key, value in data.items():
@@ -64,6 +66,8 @@ def replace_placeholder_in_json(data, placeholder_name, placeholder_value):
                     replace_placeholder_in_json(item, placeholder_name, placeholder_value)
     return data
    
+
+# Function to update Azure Search components from JSON file based on passed parameters
 def update_search_from_json(search_control_plane,json_file_path):
     headers = {
         "Content-Type": "application/json",
@@ -81,6 +85,7 @@ def update_search_from_json(search_control_plane,json_file_path):
             else:
                 name = VECTOR_INDEX_NAME_HERE  # Replace with your index name
 
+            # Create the Datasource in Search Service
             if search_control_plane == "datasource" and search_control_plane == "images-datasource":
                 payload = replace_placeholder_in_json(payload, "SUBSCRIPTION_ID_HERE", SUBSCRIPTION_ID_HERE)  # Replace with your subscription ID
                 payload = replace_placeholder_in_json(payload, "RESOURCE_GROUP_NAME_HERE", RESOURCE_GROUP_NAME_HERE)  # Replace with your resource group name
@@ -105,6 +110,7 @@ def update_search_from_json(search_control_plane,json_file_path):
                     print(f"Failed to create data source '{data_source_name}'. Status code: {response.status_code}, Response: {response.text}")
                 return False
 
+            # Create the Skillset in Search Service
             elif search_control_plane == "skillset" and search_control_plane == "images-skillset":
                 payload = replace_placeholder_in_json(payload, "AOAI_URI_HERE", AOAI_URI_HERE)  # Replace with your AOAI URI
                 payload = replace_placeholder_in_json(payload, "AOAI_API_KEY_HERE", AOAI_API_KEY_HERE)  # Replace with your AOAI API key
@@ -128,6 +134,7 @@ def update_search_from_json(search_control_plane,json_file_path):
                     print(f"Failed to create skillset '{skillset_name}'. Status code: {response.status_code}, Response: {response.text}")
                 return False
 
+            # Create the Index in Search Service
             elif search_control_plane == "index" and search_control_plane == "images-index":
                 payload = replace_placeholder_in_json(payload, "AOAI_URI_HERE", AOAI_URI_HERE)  # Replace with your AOAI URI
                 payload = replace_placeholder_in_json(payload, "AOAI_API_KEY_HERE", AOAI_API_KEY_HERE)  # Replace with your AOAI API key
@@ -152,6 +159,7 @@ def update_search_from_json(search_control_plane,json_file_path):
                 else:
                     print(f"Failed to create index '{index_name}'. Status code: {response.status_code}, Response: {response.text}")
                 return False
+            # Create the Indexer in Search Service
             elif search_control_plane == "indexer" and search_control_plane == "images-indexer":
                 payload = replace_placeholder_in_json(payload, "INDEX_NAME_HERE", name)  # Replace with your index name 
                 indexer_name = f"{name}-indexer"
@@ -175,6 +183,7 @@ def update_search_from_json(search_control_plane,json_file_path):
         print(f"Error decoding JSON from file '{json_file_path}': {e}")
         return False
 
+# Run the indexer
 def run_indexer(indexer_name):
     headers = {
         "Content-Type": "application/json",

@@ -16,6 +16,7 @@ from azure.core.credentials import AzureKeyCredential
 st.set_page_config(layout="wide")
 dotenv.load_dotenv()
 
+# Load environment variables
 endpoint = os.environ.get("OPENAI_BASE_URL")
 api_key = os.environ.get("OPENAI_API_KEY")
 deployment = os.environ.get("OPENAI_DEPLOYMENT_NAME")
@@ -36,132 +37,16 @@ search_query_type = "vector" if os.environ.get("SEARCH_QUERY_TYPE") == "vector" 
 blobl_sas_token = os.environ.get("BLOB_SAS_TOKEN")
 blob_folderPath = os.environ.get("BLOB_FOLDER_PATH")
 
+###
+# Streamlit configuration
+###
 def open_avatare_image(file_path):
     data = None
     with open(file_path, "rb") as f:
         data = f.read()
     return data
 
-
-# Initialise session state variables
-if "generated" not in st.session_state:
-    st.session_state["generated"] = []
-if "past" not in st.session_state:
-    st.session_state["past"] = []
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
-if "model_name" not in st.session_state:
-    st.session_state["model_name"] = []
-if "llm_config_params" not in st.session_state:
-    st.session_state["llm_config_params"] = {
-        'max_response': 4000,
-        'temperatur': 0.7,
-        'top_p': 1.0,
-        'stop_sequences': None,
-        'frequency_penalty': 0.0,
-        'presence_penalty': 0.0
-    }
-if "search_config_params" not in st.session_state:
-    st.session_state["search_config_params"] = {
-        'filter': None,
-        'strictness': 1,
-        'top_n_documents': 50
-    }        
-if "cost" not in st.session_state:
-    st.session_state["cost"] = []
-if "total_tokens" not in st.session_state:
-    st.session_state["total_tokens"] = 0
-if "prompt_tokens" not in st.session_state:
-    st.session_state["prompt_tokens"] = 0 
-if "completion_tokens" not in st.session_state:
-    st.session_state["completion_tokens"] = 0
-if "total_cost" not in st.session_state:
-    st.session_state["total_cost"] = 0.0
-if "references" not in st.session_state:
-    st.session_state["references"] = []
-if "refs_count" not in st.session_state:
-    st.session_state["refs_count"] = 0
-if "references_toggle" not in st.session_state:
-    st.session_state["references_toggle"] = False
-if 'avatar_user' not in st.session_state:
-    st.session_state['avatar_user'] = open_avatare_image('images/avatar_user.png')
-if 'avatar_ai' not in st.session_state:
-    st.session_state['avatar_ai'] = open_avatare_image('images/avatar_ai.png')
-if 'default_prompt' not in st.session_state:
-    st.session_state['default_prompt'] = 'You are an AI assistant that helps people find information.'
-if 'aoai_client' not in st.session_state:
-    print(endpoint)
-    print(api_key)
-    print(api_version)
-    st.session_state['aoai_client'] = AzureOpenAI(
-        azure_endpoint=endpoint,
-        # azure_ad_token_provider=token_provider,
-        api_key=api_key,
-        api_version=api_version,
-    )
-
-
-def randomword(length):
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
-
-
-def get_client(account_url):
-    credential = DefaultAzureCredential()
-    service = BlobServiceClient(account_url=account_url, credential=credential)
-
-    return service
-
-
-def generate_sas_token(file_name):
-    #return f"{file_name}"
-    return f"{file_name}?{blobl_sas_token}"
-
-
-def get_chat_msg_count():
-    return len(st.session_state["references"])
-
-
-def generate_response_data(completion):
-    content = completion["choices"][0]["message"]["content"]
-    context = completion["choices"][0]["message"]["context"]
-    total_tokens = completion["usage"]["total_tokens"]
-    prompt_tokens = completion["usage"]["prompt_tokens"]
-    completion_tokens = completion["usage"]["completion_tokens"]
-
-    citations = {'all': [], 'selected': []}
-    for idx, citation in enumerate(context["citations"]):
-        citation_reference = f"[doc{idx + 1}]"
-        imgurls = []
-        if citation["url"] != "":
-            for img in json.loads(citation["url"]):
-                imgurls.append(generate_sas_token(img))
-
-        filepath = citation["filepath"]
-        title = citation["title"]
-        snippet = citation["content"]
-        chunk_id = citation["chunk_id"]
-        replaced_html = f":blue-background[{citation_reference}]"
-        content = content.replace(citation_reference, replaced_html)
-
-        citation_obj = {
-            "citations": "Citations",
-            "citation_reference": citation_reference,
-            "imgurls": imgurls,
-            "filepath": filepath,
-            "title": title,
-            "snippet": snippet,
-            "chunk_id": chunk_id,
-            "replaced_html": replaced_html,
-        }
-        citations['all'].append(citation_obj)
-        
-        if citation_reference in content:
-            citations['selected'].append(citation_obj)
-            
-    return content, total_tokens, prompt_tokens, completion_tokens, citations
-
-
+# Configuration settings on the Streamlit sidebar
 with st.sidebar:
     on = st.toggle("Settings")
     if on:
@@ -246,6 +131,128 @@ with st.sidebar:
             )
 
 
+# Initialise session state variables for Streamlit
+if "generated" not in st.session_state:
+    st.session_state["generated"] = []
+if "past" not in st.session_state:
+    st.session_state["past"] = []
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
+if "model_name" not in st.session_state:
+    st.session_state["model_name"] = []
+if "llm_config_params" not in st.session_state:
+    st.session_state["llm_config_params"] = {
+        'max_response': 4000,
+        'temperatur': 0.7,
+        'top_p': 1.0,
+        'stop_sequences': None,
+        'frequency_penalty': 0.0,
+        'presence_penalty': 0.0
+    }
+if "search_config_params" not in st.session_state:
+    st.session_state["search_config_params"] = {
+        'filter': None,
+        'strictness': 1,
+        'top_n_documents': 50
+    }        
+if "cost" not in st.session_state:
+    st.session_state["cost"] = []
+if "total_tokens" not in st.session_state:
+    st.session_state["total_tokens"] = 0
+if "prompt_tokens" not in st.session_state:
+    st.session_state["prompt_tokens"] = 0 
+if "completion_tokens" not in st.session_state:
+    st.session_state["completion_tokens"] = 0
+if "total_cost" not in st.session_state:
+    st.session_state["total_cost"] = 0.0
+if "references" not in st.session_state:
+    st.session_state["references"] = []
+if "refs_count" not in st.session_state:
+    st.session_state["refs_count"] = 0
+if "references_toggle" not in st.session_state:
+    st.session_state["references_toggle"] = False
+if 'avatar_user' not in st.session_state:
+    st.session_state['avatar_user'] = open_avatare_image('images/avatar_user.png')
+if 'avatar_ai' not in st.session_state:
+    st.session_state['avatar_ai'] = open_avatare_image('images/avatar_ai.png')
+if 'default_prompt' not in st.session_state:
+    st.session_state['default_prompt'] = 'You are an AI assistant that helps people find information.'
+if 'aoai_client' not in st.session_state:
+    print(endpoint)
+    print(api_key)
+    print(api_version)
+    st.session_state['aoai_client'] = AzureOpenAI(
+        azure_endpoint=endpoint,
+        # azure_ad_token_provider=token_provider,
+        api_key=api_key,
+        api_version=api_version,
+    )
+
+def randomword(length):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+# Get the Azure Blob Storage client
+def get_client(account_url):
+    credential = DefaultAzureCredential()
+    service = BlobServiceClient(account_url=account_url, credential=credential)
+
+    return service
+
+# Get SaS token url for the blob
+def generate_sas_token(file_name):
+    #return f"{file_name}"
+    return f"{file_name}?{blobl_sas_token}"
+
+
+def get_chat_msg_count():
+    return len(st.session_state["references"])
+
+####
+############### RAG Search with Images in Citations ##########
+####
+
+# Traverse the completion response and extract the citations and information of the documents
+def generate_response_data(completion):
+    content = completion["choices"][0]["message"]["content"]
+    context = completion["choices"][0]["message"]["context"]
+    total_tokens = completion["usage"]["total_tokens"]
+    prompt_tokens = completion["usage"]["prompt_tokens"]
+    completion_tokens = completion["usage"]["completion_tokens"]
+
+    citations = {'all': [], 'selected': []}
+    for idx, citation in enumerate(context["citations"]):
+        citation_reference = f"[doc{idx + 1}]"
+        imgurls = []
+        if citation["url"] != "":
+            for img in json.loads(citation["url"]):
+                imgurls.append(generate_sas_token(img))
+
+        filepath = citation["filepath"]
+        title = citation["title"]
+        snippet = citation["content"]
+        chunk_id = citation["chunk_id"]
+        replaced_html = f":blue-background[{citation_reference}]"
+        content = content.replace(citation_reference, replaced_html)
+
+        citation_obj = {
+            "citations": "Citations",
+            "citation_reference": citation_reference,
+            "imgurls": imgurls,
+            "filepath": filepath,
+            "title": title,
+            "snippet": snippet,
+            "chunk_id": chunk_id,
+            "replaced_html": replaced_html,
+        }
+        citations['all'].append(citation_obj)
+        
+        if citation_reference in content:
+            citations['selected'].append(citation_obj)
+            
+    return content, total_tokens, prompt_tokens, completion_tokens, citations
+
+# Expand the Citation data to create the dataframe
 def get_citation_data():
     data = []
     for r in refs:
@@ -260,7 +267,7 @@ def get_refs():
         refs = st.session_state["references"][-1]
     return refs
 
-
+# Render the references in the chat
 def render_references(refs, render_type, citation_type):
     refs = refs[citation_type]
     tab_names = [r["citation_reference"] for r in refs]
@@ -302,6 +309,7 @@ def render_references(refs, render_type, citation_type):
                     st.image(img, use_column_width="auto", caption=caption)
                     
 
+## Main LLM function call to get results from Azure OpenAI
 def llm_request(msg):
     client = st.session_state['aoai_client']
     completion = client.chat.completions.create(
@@ -338,7 +346,7 @@ def llm_request(msg):
 
     return completion
 
-
+# LLM function call to get results
 def get_llm_completion(prompt):
     st.session_state["messages"].append({"role": "user", "content": prompt})
     try:
@@ -355,6 +363,7 @@ def get_llm_completion(prompt):
     return json.loads(completion.to_json())
 
 
+# Fetch the response from the LLM
 def generate_response(prompt):
     st.session_state["messages"].append({"role": "user", "content": prompt})
     try:
@@ -373,8 +382,11 @@ def generate_response(prompt):
 
     return response, total_tokens, prompt_tokens, completion_tokens
 
+###
 ################ Image Search ################
+###
 
+# Generate embeddings for the text using Azure AI Vision
 def generate_embeddings_text(text):
 
     print(f"Generating embeddings...")
@@ -403,6 +415,7 @@ def generate_embeddings_text(text):
         return None
 
 
+## Call the Azure OpenAI API to get the rephrased query
 def ask_openai(query):
     print(f"Asking OpenAI...")
     print(f"Input query: {query}")
@@ -433,12 +446,13 @@ def ask_openai(query):
 
     return chat_completion.choices[0].message.content
 
+## Image Search function
 def ImageSearch(query, max_images=5):
     
     try:
         user_query = query
 
-        ##query = ask_openai(user_query)
+        query = ask_openai(user_query)
         print(f"Rephrased query: {query}")
 
         # Generate embeddings for the query
@@ -476,9 +490,9 @@ def ImageSearch(query, max_images=5):
                 image_url = blob_folderPath + result["title"]
 
             sas_url = generate_sas_token(image_url)
-            # response = requests.get(sas_url, headers={"Authorization": auth_header})
 
-            # # Check if the request was successful
+            ### Convert to Base64 image if URL is not accessible
+            ## Check if the request was successful
             # if response.status_code == 200:
             #     # Convert the image data to base64
             #     base64_image = base64.b64encode(response.content).decode('utf-8')
@@ -503,7 +517,7 @@ def ImageSearch(query, max_images=5):
     return json.dumps(output)
 
 
-#### Main app Rendering ####
+#### STreamlit - Main app Rendering ####
 st.title("Azure Open AI RAG with Images")
 
 container = st.container()

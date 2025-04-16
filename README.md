@@ -1,6 +1,18 @@
 # AzureAI-RAG-Multimodal
 Azure AI Solutions with RAG with Multimodal data such as Images, Text and retrieving Multimodal Results
 
+## Main files
+
+- `Split-pdf.py`: Split the pdf file into images and text chunks and then a JSON File to be used in Search
+- `Searchsetup.py`: Configure an Azure Search Service with Datasources, Indexes, Indexers and Skillsets to parse the PDF JSONs and Images to create the Search Index
+- `App.py`: Streamlit file to run the Application 
+- `.env`: This file needs to be created from .env-copy file for setting up the parameters for the solution
+
+If everything is setup file, the solution would look like this
+
+![alt text](Images/Streamlitapp.jpg)
+
+# Steps for Setting up the solution
 ## Step 1
 Create an Azure Storage Account and a Container to store the PDF content to be parsed.  
 > How to: [Create an Azure Storage Account](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal)
@@ -29,11 +41,20 @@ Create an Azure Open AI resource (recommendeded:Use Azure AI Foundry Project) an
 2. gpt-4o-mini
 
 ## Step 4
+- Use VS Code and make sure Python is installed on your computer
+- Set up a Python environment in VS Code by following this guide: [Creating Python Environments in VS Code](https://code.visualstudio.com/docs/python/environments#_creating-environments).
+- Install the required Python dependencies by running the following command in the terminal:
+    ```bash
+    pip install -r requirements.txt
+    ```
+- Ensure all dependencies are installed successfully before proceeding.
+
+## Step 5
 - Copy the `.env-sample` file and paste it in the same folder.
 - Rename the copied file to `.env`.
 - Fill the values in the `.env` file with values from Azure Resources where not available.
 
-## Step 5
+## Step 6
 - Upload the PDF documents to the `raw_data` folder.
 - Run the `split-pdf.py` file to split the PDF into JSON files and images.
 - Ensure the `prepared_data` folder contains:

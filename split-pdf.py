@@ -12,6 +12,7 @@ import base64
 from mimetypes import guess_type
 load_dotenv()
 
+# Load environment variables
 BLOB_SERVICE_SAS_URL = os.getenv('BLOB_SERVICE_SAS_URL')
 BLOB_SAS_URI = os.getenv('BLOB_SAS_URI')
 BLOB_RAWDATA_DIR = os.getenv('BLOB_RAWDATA_DIR')
@@ -58,8 +59,10 @@ config = {
     'extract_vector_graphics': EXTRACT_VECTOR_GRAPHICS
 }
 
+## Main Class for all the Image Extraction and Uploading
 class ImgExtractor:
     
+    #Extract file details from the blob URL
     @staticmethod
     def run_extractor(url, config):
         blob, container, filepath, filename = ImgExtractor.parse_blob_url(url)
@@ -68,6 +71,7 @@ class ImgExtractor:
         stream = ImgExtractor.download_blob_to_stream(client, container, filepath)
         ImgExtractor.extract_and_upload(client, blob, filename_without_extention, stream, config)
 
+    # Parse the blob URL to extract the blob, container, filepath, and filename
     @staticmethod
     def parse_blob_url(url):
         # Not the best way of doing it, but it works.
@@ -78,6 +82,7 @@ class ImgExtractor:
         
         return blob, container, filepath, filename
 
+    # Download the blob to a stream
     @staticmethod
     def download_blob_to_stream(blob_service_client: BlobServiceClient, container_name, filpath):
         print('>>> downloading file from blob')
@@ -88,7 +93,7 @@ class ImgExtractor:
         print('<<< downloading file from blob')
         return stream
     
-
+    # Upload the blob file to Azure Blob Storage. Use overwrite=True to overwrite the file if it already exists.
     @staticmethod
     def upload_blob_file(blob_service_client: BlobServiceClient, container_name: str, file_name, data, overwrite=True):
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=file_name)
@@ -101,33 +106,27 @@ class ImgExtractor:
         blob_client.upload_blob(data, blob_type="BlockBlob", overwrite=overwrite)
         print('>>> uploading file from blob')
 
-
+    # Get the BlobServiceClient using the SAS URL
     @staticmethod
     def get_client(account_url):
+        ## If you want to use the DefaultAzureCredential, uncomment the following lines:
         # credential = DefaultAzureCredential()
         # service = BlobServiceClient(account_url=account_url, credential=credential)
 
+        # Using SAS URL for authentication
         service = BlobServiceClient(account_url=account_url) 
 
         return service
     
+    # Retuns the blob URL with SAS token
     @staticmethod
     def generate_sas_token(file_name):
         return f"{file_name}?{BLOB_SAS_TOKEN}"
 
+    # Reads the blob as base64 and returns the base64 string
     @staticmethod
     def read_blob_as_base64(blob_service_client:BlobServiceClient, blobfilename: str):
-        """
-        Reads a blob image file from Azure Blob Storage and converts it to a base64 string.
-
-        Parameters:
-        - blob_service_client (BlobServiceClient): The BlobServiceClient instance.
-        - container_name (str): The name of the container.
-        - file_name (str): The name of the blob file.
-
-        Returns:
-        - base64_string (str): The base64 encoded string of the image.
-        """
+        
         print(f'>>> Reading blob {blobfilename} as base64')
         blob, container, filepath, filename = ImgExtractor.parse_blob_url(blobfilename)
         blob_client = blob_service_client.get_blob_client(container=BLOB_CONTAINER_NAME, blob=filepath)
@@ -143,26 +142,14 @@ class ImgExtractor:
         print(f'<<< Blob {blobfilename} converted to base64')
         return f"data:{mime_type};base64,{base64_string}"
     
+    # Chunks the page text into smaller parts of specified length
     @staticmethod
     def chunk_page(strl, length):
         return (' '.join(strl[i:length + i]) for i in range(0, len(strl), length))
     
+    ## Extract Image Caption with GPT models
     @staticmethod
     def understand_image_with_gptv(service, image_path, caption):
-        """
-        Generates a description for an image using the GPT-4V model.
-
-        Parameters:
-        - api_base (str): The base URL of the API.
-        - api_key (str): The API key for authentication.
-        - deployment_name (str): The name of the deployment.
-        - api_version (str): The version of the API.
-        - image_path (str): The path to the image file.
-        - caption (str): The caption for the image.
-
-        Returns:
-        - img_description (str): The generated description for the image.
-        """
         client = AzureOpenAI(
             api_key=AZURE_OPENAI_API_KEY,  
             api_version=API_VERSION,
@@ -218,9 +205,10 @@ class ImgExtractor:
         
         return img_description
     
+    # Extracts vector graphics from the PDF page and saves them as images
     @staticmethod
     def get_vector_graphics(page, page_num):
-        # extract vector graphic objects
+        # Extract vector graphic objects
         bboxes = page.cluster_drawings()
 
         # Iterate through each bounding box
@@ -231,24 +219,23 @@ class ImgExtractor:
             # Save the pixmap as an image
             filename = f"sample-{page_num + 1}-{i + 1}.png"
             pix.save(filename)
-            pix
             print(f"Saved {filename}")
             return filename
-        
+
+
+    # Checks if a given imgurl exists in a JSON file stored in Azure Blob Storage.
+    #
+    # Parameters:
+    # - blob_service_client (BlobServiceClient): The BlobServiceClient instance.
+    # - container_name (str): The name of the container.
+    # - json_file_path (str): The path to the JSON file in the blob storage.
+    # - imgurl (str): The image URL to check.
+    #
+    # Returns:
+    # - bool: True if the imgurl exists in the JSON file, False otherwise.
     @staticmethod
     def check_imgurl_in_json(blob_service_client: BlobServiceClient, container_name: str, json_file_path: str, imgurl: str) -> bool:
-        """
-        Checks if a given imgurl exists in a JSON file stored in Azure Blob Storage.
-
-        Parameters:
-        - blob_service_client (BlobServiceClient): The BlobServiceClient instance.
-        - container_name (str): The name of the container.
-        - json_file_path (str): The path to the JSON file in the blob storage.
-        - imgurl (str): The image URL to check.
-
-        Returns:
-        - bool: True if the imgurl exists in the JSON file, False otherwise.
-        """
+        
         print(f'>>> Checking if imgurl exists in JSON file: {json_file_path}')
         blob_client = blob_service_client.get_blob_client(container=container_name, blob=json_file_path)
         
@@ -274,6 +261,16 @@ class ImgExtractor:
         print(f'<<< imgurl not found in JSON file: {imgurl}')
         return False
 
+    # 
+    # Main Function
+    # Extracts images and text from a PDF file, uploads them to Azure Blob Storage, and generates captions for the images using GPT.
+    # The function takes the following parameters:
+    # - service: The BlobServiceClient instance.
+    # - blob: The base URL of the blob storage account.
+    # - filename_without_extention: The name of the PDF file without its extension.
+    # - pdf_stream: The stream of the PDF file.
+    # - config: A dictionary containing configuration parameters for the extraction process.
+    #
     @staticmethod
     def extract_and_upload(service, blob, filename_without_extention, pdf_stream, config):        
         dest_container_name = config['container_name']
